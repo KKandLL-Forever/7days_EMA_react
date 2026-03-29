@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# SQLite WAL files (keep ema.db itself)
+data/*.db-shm
+data/*.db-wal
+.env
