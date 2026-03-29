@@ -13,7 +13,9 @@ interface ModalInfo {
 }
 
 export default function EmaTable() {
-  const { priceData, buys, sells, deletePriceData, totalCapital } = useAppStore();
+  const { priceData, buys, sells, deletePriceData, totalCapitalCN, totalCapitalUS, stocks, activeStockId } = useAppStore();
+  const activeMarket = stocks.find(s => s.id === activeStockId)?.market ?? 'cn';
+  const totalCapital = activeMarket === 'us' ? totalCapitalUS : totalCapitalCN;
   const [modal, setModal] = useState<ModalInfo | null>(null);
 
   const sorted = useMemo(
@@ -137,10 +139,10 @@ export default function EmaTable() {
       </div>
 
       {modal?.type === 'buy' && (
-        <BuyModal date={modal.date} price={modal.price} freeCapital={freeCapital} onClose={() => setModal(null)} />
+        <BuyModal date={modal.date} price={modal.price} freeCapital={freeCapital} market={activeMarket} onClose={() => setModal(null)} />
       )}
       {modal?.type === 'sell' && (
-        <SellModal date={modal.date} price={modal.price} remainShares={modal.remainShares!} onClose={() => setModal(null)} />
+        <SellModal date={modal.date} price={modal.price} remainShares={modal.remainShares!} market={activeMarket} onClose={() => setModal(null)} />
       )}
     </>
   );

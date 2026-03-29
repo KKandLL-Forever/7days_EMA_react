@@ -97,6 +97,12 @@ export class DatabaseService implements OnModuleInit {
       })();
     }
 
+    // Add market column to stocks if missing (v3)
+    const stocksColumns = (this.db.pragma('table_info(stocks)') as Array<{ name: string }>).map(c => c.name);
+    if (!stocksColumns.includes('market')) {
+      this.db.exec(`ALTER TABLE stocks ADD COLUMN market TEXT NOT NULL DEFAULT 'cn';`);
+    }
+
     // Add stock_id to buys if missing
     const buysColumns = (this.db.pragma('table_info(buys)') as Array<{ name: string }>).map(c => c.name);
     if (!buysColumns.includes('stock_id')) {

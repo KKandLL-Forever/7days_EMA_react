@@ -2,6 +2,7 @@ export interface Stock {
   id: number;
   code: string;
   name: string;
+  market: 'cn' | 'us';
   created_at: string;
 }
 

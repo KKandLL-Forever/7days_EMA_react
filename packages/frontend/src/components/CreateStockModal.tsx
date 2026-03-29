@@ -12,6 +12,7 @@ export default function CreateStockModal({ onClose, onCreated, autoSwitch = true
   const { createStock, setActiveStock } = useAppStore();
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
+  const [market, setMarket] = useState<'cn' | 'us'>('cn');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -21,7 +22,7 @@ export default function CreateStockModal({ onClose, onCreated, autoSwitch = true
     setLoading(true);
     setError('');
     try {
-      const stock = await createStock(trimCode, name.trim());
+      const stock = await createStock(trimCode, name.trim(), market);
       if (autoSwitch) await setActiveStock(stock.id);
       onCreated(stock.id);
     } catch (e: unknown) {
@@ -38,6 +39,24 @@ export default function CreateStockModal({ onClose, onCreated, autoSwitch = true
         onClick={e => e.stopPropagation()}
       >
         <h3 className="text-lg font-bold text-gray-800 mb-4">添加股票</h3>
+
+        {/* 市场 */}
+        <div className="mb-3 flex rounded-lg border border-gray-300 overflow-hidden text-sm">
+          <button
+            type="button"
+            onClick={() => setMarket('cn')}
+            className={`flex-1 py-2 font-medium transition-colors ${market === 'cn' ? 'bg-blue-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+          >
+            🇨🇳 A股
+          </button>
+          <button
+            type="button"
+            onClick={() => setMarket('us')}
+            className={`flex-1 py-2 font-medium transition-colors ${market === 'us' ? 'bg-blue-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+          >
+            🇺🇸 美股
+          </button>
+        </div>
 
         <div className="mb-3">
           <label className="block text-sm font-medium text-gray-600 mb-1">

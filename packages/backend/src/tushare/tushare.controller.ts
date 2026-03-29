@@ -3,9 +3,10 @@ import { DatabaseService } from '../database/database.service';
 
 interface FetchParams {
   stockId: number;
-  tsCode: string;      // e.g. "600519.SH"
+  tsCode: string;      // A股: "600519.SH", 美股: "AAPL"
   startDate: string;   // YYYYMMDD
   endDate: string;     // YYYYMMDD
+  market: 'cn' | 'us'; // cn=A股, us=美股
 }
 
 interface TushareResponse {
@@ -35,15 +36,18 @@ export class TushareController {
     const token = process.env.TUSHARE_TOKEN;
     if (!token) throw new BadRequestException('未配置 TUSHARE_TOKEN，请在 .env 文件中添加');
 
-    const { stockId, startDate, endDate } = body;
+    const { stockId, startDate, endDate, market = 'cn' } = body;
     if (!stockId) throw new BadRequestException('stockId 不能为空');
 
-    const tsCode = inferTsCode(body.tsCode);
+    const tsCode = market === 'us' ? body.tsCode.trim().toUpperCase() : inferTsCode(body.tsCode);
     if (!tsCode) throw new BadRequestException('tsCode 不能为空');
 
     if (!/^\d{8}$/.test(startDate) || !/^\d{8}$/.test(endDate)) {
       throw new BadRequestException('日期格式应为 YYYYMMDD');
     }
+
+    const apiName = market === 'us' ? 'us_daily' : 'daily';
+    const dateField = market === 'us' ? 'trade_date' : 'trade_date';
 
     let tushareData: TushareResponse;
     try {
@@ -51,10 +55,10 @@ export class TushareController {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          api_name: 'daily',
+          api_name: apiName,
           token,
           params: { ts_code: tsCode, start_date: startDate, end_date: endDate },
-          fields: 'trade_date,close',
+          fields: `${dateField},close`,
         }),
       });
       tushareData = await res.json() as TushareResponse;

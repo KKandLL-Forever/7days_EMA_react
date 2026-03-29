@@ -14,19 +14,25 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
 }
 
 // ---- Capital ----
-export const getCapital = () =>
-  request<{ totalCapital: number }>('/capital');
+export interface CapitalData {
+  totalCapitalCN: number;
+  totalCapitalUS: number;
+}
 
-export const setCapital = (totalCapital: number) =>
-  request<{ totalCapital: number }>('/capital', {
+export const getCapital = () =>
+  request<CapitalData>('/capital');
+
+export const setCapital = (data: Partial<CapitalData>) =>
+  request<CapitalData>('/capital', {
     method: 'POST',
-    body: JSON.stringify({ totalCapital }),
+    body: JSON.stringify(data),
   });
 
 export interface StockSummary {
   stockId: number;
   code: string;
   name: string;
+  market: 'cn' | 'us';
   remainShares: number;
   totalInvested: number;
   totalProceeds: number;
@@ -41,10 +47,10 @@ export const getCapitalSummary = () =>
 export const getAllStocks = () =>
   request<Stock[]>('/stocks');
 
-export const createStock = (code: string, name?: string) =>
+export const createStock = (code: string, name?: string, market?: 'cn' | 'us') =>
   request<Stock>('/stocks', {
     method: 'POST',
-    body: JSON.stringify({ code, name }),
+    body: JSON.stringify({ code, name, market }),
   });
 
 export const updateStock = (id: number, name: string) =>
@@ -109,10 +115,10 @@ export const deleteSellById = (id: number) =>
   request<{ deleted: boolean }>(`/sells/${id}`, { method: 'DELETE' });
 
 // ---- Tushare ----
-export const tushareFetch = (stockId: number, tsCode: string, startDate: string, endDate: string) =>
+export const tushareFetch = (stockId: number, tsCode: string, startDate: string, endDate: string, market: 'cn' | 'us' = 'cn') =>
   request<{ count: number; message: string }>('/tushare/fetch', {
     method: 'POST',
-    body: JSON.stringify({ stockId, tsCode, startDate, endDate }),
+    body: JSON.stringify({ stockId, tsCode, startDate, endDate, market }),
   });
 
 // ---- Migration ----

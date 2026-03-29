@@ -5,6 +5,7 @@ interface StockSummary {
   stockId: number;
   code: string;
   name: string;
+  market: 'cn' | 'us';
   remainShares: number;
   totalInvested: number;
   totalProceeds: number;
@@ -12,31 +13,52 @@ interface StockSummary {
   latestClose: number;
 }
 
+interface CapitalData {
+  totalCapitalCN: number;
+  totalCapitalUS: number;
+}
+
 @Controller('api/capital')
 export class CapitalController {
   constructor(private readonly db: DatabaseService) {}
 
-  @Get()
-  getCapital(): { totalCapital: number } {
+  private getSetting(key: string): number {
     const row = this.db.raw
-      .prepare("SELECT value FROM settings WHERE key = 'totalCapital'")
-      .get() as { value: string } | undefined;
-    return { totalCapital: row ? parseFloat(row.value) : 0 };
+      .prepare('SELECT value FROM settings WHERE key = ?')
+      .get(key) as { value: string } | undefined;
+    return row ? parseFloat(row.value) : 0;
+  }
+
+  private setSetting(key: string, value: number) {
+    this.db.raw
+      .prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)')
+      .run(key, String(value));
+  }
+
+  @Get()
+  getCapital(): CapitalData {
+    // Migrate legacy totalCapital → totalCapitalCN on first read
+    const legacy = this.getSetting('totalCapital');
+    const cn = this.getSetting('totalCapitalCN');
+    const totalCapitalCN = cn > 0 ? cn : legacy;
+    return {
+      totalCapitalCN,
+      totalCapitalUS: this.getSetting('totalCapitalUS'),
+    };
   }
 
   @Post()
-  setCapital(@Body() body: { totalCapital: number }): { totalCapital: number } {
-    this.db.raw
-      .prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('totalCapital', ?)")
-      .run(String(body.totalCapital));
-    return { totalCapital: body.totalCapital };
+  setCapital(@Body() body: { totalCapitalCN?: number; totalCapitalUS?: number }): CapitalData {
+    if (body.totalCapitalCN !== undefined) this.setSetting('totalCapitalCN', body.totalCapitalCN);
+    if (body.totalCapitalUS !== undefined) this.setSetting('totalCapitalUS', body.totalCapitalUS);
+    return this.getCapital();
   }
 
   @Get('summary')
   getSummary(): StockSummary[] {
     const stocks = this.db.raw
-      .prepare('SELECT id, code, name FROM stocks ORDER BY created_at')
-      .all() as Array<{ id: number; code: string; name: string }>;
+      .prepare('SELECT id, code, name, market FROM stocks ORDER BY created_at')
+      .all() as Array<{ id: number; code: string; name: string; market: string }>;
 
     return stocks.map(stock => {
       const buysRow = this.db.raw
@@ -55,6 +77,7 @@ export class CapitalController {
         stockId: stock.id,
         code: stock.code,
         name: stock.name,
+        market: (stock.market === 'us' ? 'us' : 'cn') as 'cn' | 'us',
         remainShares: buysRow.shares - sellsRow.shares,
         totalInvested: buysRow.invested,
         totalProceeds: sellsRow.proceeds,

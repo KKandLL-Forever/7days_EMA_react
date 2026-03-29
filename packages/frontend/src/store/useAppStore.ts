@@ -5,7 +5,8 @@ import * as api from '../api/client';
 import type { StockSummary } from '../api/client';
 
 interface AppState {
-  totalCapital: number;
+  totalCapitalCN: number;
+  totalCapitalUS: number;
   stocks: Stock[];
   activeStockId: number | null;
   priceData: PriceData[];
@@ -17,9 +18,10 @@ interface AppState {
   loadAll: () => Promise<void>;
   loadStockData: (stockId: number) => Promise<void>;
   setActiveStock: (id: number) => Promise<void>;
-  setTotalCapital: (v: number) => Promise<void>;
+  setTotalCapitalCN: (v: number) => Promise<void>;
+  setTotalCapitalUS: (v: number) => Promise<void>;
 
-  createStock: (code: string, name?: string) => Promise<Stock>;
+  createStock: (code: string, name?: string, market?: 'cn' | 'us') => Promise<Stock>;
   deleteStock: (id: number) => Promise<void>;
 
   addPriceData: (d: PriceData) => Promise<void>;
@@ -47,7 +49,8 @@ function requireStock(activeStockId: number | null): number {
 
 export const useAppStore = create<AppState>()(
   immer((set, get) => ({
-    totalCapital: 0,
+    totalCapitalCN: 0,
+    totalCapitalUS: 0,
     stocks: [],
     activeStockId: null,
     priceData: [],
@@ -64,7 +67,8 @@ export const useAppStore = create<AppState>()(
           api.getAllStocks(),
         ]);
         set(s => {
-          s.totalCapital = capital.totalCapital;
+          s.totalCapitalCN = capital.totalCapitalCN;
+          s.totalCapitalUS = capital.totalCapitalUS;
           s.stocks = stocks;
         });
 
@@ -120,13 +124,18 @@ export const useAppStore = create<AppState>()(
       set(s => { s.stockSummaries = summaries; });
     },
 
-    setTotalCapital: async (v) => {
-      await api.setCapital(v);
-      set(s => { s.totalCapital = v; });
+    setTotalCapitalCN: async (v) => {
+      await api.setCapital({ totalCapitalCN: v });
+      set(s => { s.totalCapitalCN = v; });
     },
 
-    createStock: async (code, name) => {
-      const stock = await api.createStock(code, name);
+    setTotalCapitalUS: async (v) => {
+      await api.setCapital({ totalCapitalUS: v });
+      set(s => { s.totalCapitalUS = v; });
+    },
+
+    createStock: async (code, name, market) => {
+      const stock = await api.createStock(code, name, market);
       set(s => { s.stocks.push(stock); });
       return stock;
     },

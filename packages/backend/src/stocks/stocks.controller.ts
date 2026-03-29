@@ -8,6 +8,7 @@ interface Stock {
   id: number;
   code: string;
   name: string;
+  market: 'cn' | 'us';
   created_at: string;
 }
 
@@ -18,14 +19,15 @@ export class StocksController {
   @Get()
   getAll(): Stock[] {
     return this.db.raw
-      .prepare('SELECT id, code, name, created_at FROM stocks ORDER BY created_at')
+      .prepare('SELECT id, code, name, market, created_at FROM stocks ORDER BY created_at')
       .all() as Stock[];
   }
 
   @Post()
-  create(@Body() body: { code: string; name?: string }): Stock {
+  create(@Body() body: { code: string; name?: string; market?: 'cn' | 'us' }): Stock {
     const code = (body.code ?? '').trim().toUpperCase();
     if (!code) throw new ConflictException('股票代码不能为空');
+    const market = body.market === 'us' ? 'us' : 'cn';
 
     const existing = this.db.raw
       .prepare('SELECT id FROM stocks WHERE code = ?')
@@ -33,10 +35,10 @@ export class StocksController {
     if (existing) throw new ConflictException(`股票代码 ${code} 已存在`);
 
     const result = this.db.raw
-      .prepare('INSERT INTO stocks (code, name) VALUES (?, ?)')
-      .run(code, (body.name ?? '').trim());
+      .prepare('INSERT INTO stocks (code, name, market) VALUES (?, ?, ?)')
+      .run(code, (body.name ?? '').trim(), market);
     return this.db.raw
-      .prepare('SELECT id, code, name, created_at FROM stocks WHERE id = ?')
+      .prepare('SELECT id, code, name, market, created_at FROM stocks WHERE id = ?')
       .get(result.lastInsertRowid) as Stock;
   }
 
@@ -49,7 +51,7 @@ export class StocksController {
       .prepare('UPDATE stocks SET name = ? WHERE id = ?')
       .run((body.name ?? '').trim(), id);
     return this.db.raw
-      .prepare('SELECT id, code, name, created_at FROM stocks WHERE id = ?')
+      .prepare('SELECT id, code, name, market, created_at FROM stocks WHERE id = ?')
       .get(id) as Stock;
   }
 
